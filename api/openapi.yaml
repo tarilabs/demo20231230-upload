@@ -16,6 +16,19 @@ paths:
                     content:
                         application/json: {}
                     description: Respnse description
+    /upload_s3:
+        post:
+            requestBody:
+                content:
+                    multipart/form-data:
+                        schema:
+                            $ref: '#/components/schemas/tType1'
+                required: true
+            responses:
+                '200':
+                    content:
+                        application/json: {}
+                    description: Respnse description
 components:
     schemas:
         tType1:

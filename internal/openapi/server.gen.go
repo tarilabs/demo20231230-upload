@@ -23,11 +23,17 @@ type TType1 struct {
 // PostUploadOrasMultipartRequestBody defines body for PostUploadOras for multipart/form-data ContentType.
 type PostUploadOrasMultipartRequestBody = TType1
 
+// PostUploadS3MultipartRequestBody defines body for PostUploadS3 for multipart/form-data ContentType.
+type PostUploadS3MultipartRequestBody = TType1
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
 	// (POST /upload_oras)
 	PostUploadOras(w http.ResponseWriter, r *http.Request)
+
+	// (POST /upload_s3)
+	PostUploadS3(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -36,6 +42,11 @@ type Unimplemented struct{}
 
 // (POST /upload_oras)
 func (_ Unimplemented) PostUploadOras(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /upload_s3)
+func (_ Unimplemented) PostUploadS3(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -54,6 +65,21 @@ func (siw *ServerInterfaceWrapper) PostUploadOras(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostUploadOras(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostUploadS3 operation middleware
+func (siw *ServerInterfaceWrapper) PostUploadS3(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUploadS3(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -178,6 +204,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/upload_oras", wrapper.PostUploadOras)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/upload_s3", wrapper.PostUploadS3)
 	})
 
 	return r
